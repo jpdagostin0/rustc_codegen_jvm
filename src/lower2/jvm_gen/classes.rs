@@ -35,6 +35,10 @@ pub(in crate::lower2) fn create_data_type_classfile_for_class(
         );
     }
     let source_file_name = source_files.first().map(|file| (*file).to_string());
+    let mixin = crate::annotations::is_mixin(annotations);
+    // Mixin templates are never instantiated as Rust values, so they need no
+    // runtime copy support (and must not add runtime interfaces to targets).
+    let is_abstract = is_abstract || mixin;
     let fields: Vec<_> = fields
         .iter()
         .filter(|(_, field_ty)| field_ty.has_jvm_value())
@@ -205,6 +209,7 @@ pub(in crate::lower2) fn create_data_type_classfile_for_class(
                     module,
                     relative_static_methods,
                     false,
+                    mixin,
                 )?);
             }
             DataTypeMethod::Function(_) => unreachable!("body was consumed above"),
@@ -235,6 +240,7 @@ pub(in crate::lower2) fn create_data_type_classfile_for_class(
                         kind,
                     )?,
                     AdtHelperKind::StaticPartialEqEnum { .. } => unreachable!("handled above"),
+                    AdtHelperKind::PartialEqClass { .. } if mixin => continue,
                     AdtHelperKind::PartialEqClass { fields } => {
                         let method_desc = format!("(L{};)Z", class_name_jvm);
                         let name_index = cp.add_utf8(method_name)?;

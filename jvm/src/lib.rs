@@ -1141,7 +1141,7 @@ mod interface_tests;
 mod annotations;
 mod trait_bindings;
 
-/// Adds a Java annotation to a Rust struct. Retention defaults to `runtime`.
+/// Adds a Java annotation to a Rust struct or impl method. Retention defaults to `runtime`.
 /// Use `class` or `source` to match the Java annotation's retention policy.
 #[proc_macro_attribute]
 pub fn annotation(args: TokenStream, item: TokenStream) -> TokenStream {

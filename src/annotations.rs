@@ -80,6 +80,17 @@ pub(crate) fn from_def(tcx: TyCtxt<'_>, def_id: DefId) -> ClassAnnotations {
     (!annotations.is_empty()).then(|| Arc::new(annotations))
 }
 
+/// Mixin classes are templates merged into a target class by SpongePowered
+/// Mixin. They must not carry Rust runtime helpers (copy/equality methods,
+/// runtime interfaces) or non-private static bridges, which Mixin rejects.
+pub(crate) const MIXIN_ANNOTATION: &str = "Lorg/spongepowered/asm/mixin/Mixin;";
+
+pub(crate) fn is_mixin(annotations: &[ClassAnnotation]) -> bool {
+    annotations
+        .iter()
+        .any(|item| item.annotation.class == MIXIN_ANNOTATION)
+}
+
 pub(crate) fn attributes(
     annotations: &[ClassAnnotation],
     cp: &mut InternedConstantPool,

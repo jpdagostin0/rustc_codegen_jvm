@@ -164,6 +164,7 @@ pub(super) fn place_or_insert_mono_function<'tcx>(
                         target_signature: oomir_function.signature.clone(),
                         receiver,
                         source_file: oomir_function.source_file().map(str::to_owned),
+                        annotations: crate::annotations::from_def(tcx, instance.def_id()),
                     };
 
                     let mut has_instance_method = false;

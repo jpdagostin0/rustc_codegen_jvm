@@ -17,4 +17,6 @@ pub struct MethodForwarder {
     pub target_signature: Signature,
     pub receiver: Option<ReceiverPointer>,
     pub source_file: Option<String>,
+    /// Java annotations declared on the Rust method with `#[jvm::annotation]`.
+    pub annotations: crate::annotations::ClassAnnotations,
 }

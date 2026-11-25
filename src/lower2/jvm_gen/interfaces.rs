@@ -186,6 +186,7 @@ pub(in crate::lower2) fn create_data_type_classfile_for_interface(
                     module,
                     relative_static_methods,
                     true,
+                    false,
                 )?);
             }
             DataTypeMethod::Function(_) => unreachable!("body was consumed above"),

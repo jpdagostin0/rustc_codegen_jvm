@@ -11,6 +11,7 @@ pub(super) fn emit(
     module: &oomir::Module,
     relative_methods: &HashSet<oomir::FunctionKey>,
     interface: bool,
+    mixin: bool,
 ) -> jvm::Result<Vec<jvm::Method>> {
     let signature = &recipe.signature;
     let source_relative = signature.is_static && signature.supports_relative_pointer_abi();
@@ -46,6 +47,16 @@ pub(super) fn emit(
         }
     }
     let static_body = (interface && !signature.is_static).then(|| code.clone());
+    let mut attributes = vec![
+        code,
+        Attribute::MethodParameters {
+            name_index: cp.add_utf8("MethodParameters")?,
+            parameters,
+        },
+    ];
+    if let Some(annotations) = recipe.annotations.as_deref() {
+        attributes.extend(crate::annotations::attributes(annotations, cp)?);
+    }
     let mut methods = vec![jvm::Method {
         access_flags: MethodAccessFlags::PUBLIC
             | if signature.is_static {
@@ -55,14 +66,14 @@ pub(super) fn emit(
             },
         name_index: cp.add_utf8(emitted_name.as_ref())?,
         descriptor_index: cp.add_utf8(&descriptor)?,
-        attributes: vec![
-            code,
-            Attribute::MethodParameters {
-                name_index: cp.add_utf8("MethodParameters")?,
-                parameters,
-            },
-        ],
+        attributes,
     }];
+    if mixin {
+        // A Mixin template keeps only the JVM-visible instance method; Rust
+        // calls the canonical owner-module body directly, and Mixin rejects
+        // non-private static methods.
+        return Ok(methods);
+    }
     if source_relative {
         methods.push(create_relative_pointer_bridge(
             cp,

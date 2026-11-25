@@ -242,14 +242,25 @@ fn number(expr: &Expr, negative: bool) -> syn::Result<Value> {
 
 pub(super) fn expand(args: TokenStream2, item: TokenStream2) -> syn::Result<TokenStream2> {
     let args: AnnotationArgs = syn::parse2(args)?;
-    let mut item: syn::ItemStruct = syn::parse2(item).map_err(|error| {
-        syn::Error::new(error.span(), "#[jvm::annotation] requires a Rust struct")
-    })?;
     let payload = json!({"retention": args.retention, "annotation": args.annotation}).to_string();
-    let payload = LitStr::new(&payload, item.span());
-    item.attrs
-        .push(syn::parse_quote!(#[jvm_codegen::annotation = #payload]));
-    Ok(quote!(#item))
+    let attr: syn::Attribute = {
+        let payload = LitStr::new(&payload, proc_macro2::Span::call_site());
+        syn::parse_quote!(#[jvm_codegen::annotation = #payload])
+    };
+    if let Ok(mut item) = syn::parse2::<syn::ItemStruct>(item.clone()) {
+        item.attrs.push(attr);
+        return Ok(quote!(#item));
+    }
+    // Methods (inherent impl items) carry method annotations, e.g. Mixin
+    // injector annotations such as `@Inject`.
+    if let Ok(mut item) = syn::parse2::<syn::ImplItemFn>(item.clone()) {
+        item.attrs.push(attr);
+        return Ok(quote!(#item));
+    }
+    Err(syn::Error::new(
+        item.span(),
+        "#[jvm::annotation] requires a Rust struct or an impl method",
+    ))
 }
 
 #[cfg(test)]
